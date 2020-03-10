@@ -1,0 +1,609 @@
+---
+title: "EEB 201 Bootcamp Assignments"
+author: "Shawn Schwartz"
+date: "9/19/2019"
+output: pdf_document
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+# Noa Pinter-Wollman (Day 1)
+
+## Iris Exercise
+
+1. Take a look at the ‘iris’ data set
+```{r}
+head(iris)
+tail(iris)
+```
+2a) Assign data for the setosa species to one variable named ‘setosa’ and assign the subset of the data for the virginica species to another variable named ‘virginica’.
+```{r}
+iris_ds <- iris
+setosa <- iris_ds %>% 
+  filter(Species == "setosa")
+
+head(setosa)
+
+virginica <- iris_ds %>%
+  filter(Species == "virginica")
+
+head(virginica)
+```
+
+2b) Plot the sepal lengths of the two species as two histograms.
+```{r}
+par(mfrow=c(1,2))
+hist(setosa$Sepal.Length, main = "Histogram of Setosa Sepal Length", xlab = "Sepal Length")
+hist(virginica$Sepal.Length, main = "Histogram of Virginica Sepal Length", xlab = "Sepal Length")
+```
+
+2c) Now plot the sepal lengths of the two species so that you can compare them.
+```{r}
+par(mfrow=c(1,1))
+boxplot(setosa$Sepal.Length, virginica$Sepal.Length, names = c("Setosa", "Virginica"), main = "Setosa v. Virginica Sepal Lengths", xlab = "Species", ylab = "Sepal Length")
+```
+
+2d) Is there a statistically significant difference between the sepal lengths of the two species?
+```{r}
+sepalLengthttest <- t.test(setosa$Sepal.Length, virginica$Sepal.Length)
+sepalLengthttest
+```
+
+Yes, there is a statistically significant difference between the sepal lengths of the two species.
+
+3) Plot and compare two other measures on your own.
+```{r}
+boxplot(setosa$Petal.Length, virginica$Petal.Length, names = c("Setosa", "Virginica"), main = "Setosa v. Virginica Petal Lengths", xlab = "Species", ylab = "Petal Length")
+```
+
+4) Compare the means of more than two groups.
+4a) Plot the sepal lengths of all three species.
+```{r}
+plot(iris_ds$Species, iris_ds$Sepal.Length, xlab = "Species", ylab="Sepal Length")
+```
+
+4b) Add a legend with species names to your plot.
+```{r}
+iris_sepals <- ggplot(iris_ds, aes(x=Species, y=Sepal.Length, col = Species)) + 
+  geom_boxplot() +
+  xlab("Species") +
+  ylab("Sepal Length")
+
+iris_sepals
+```
+
+4c) Is there a statisically significant difference in sepal length among the three species? (Hint: use an ANOVA)
+```{r}
+aov.sepallength.out <- aov(iris_ds$Sepal.Length ~ iris_ds$Species)
+summary(aov.sepallength.out)
+```
+
+Yes, there is a statisically significant difference in sepal length among the three species.
+
+4d) Which species are significantly different (Hint: run a post-hoc test)
+```{r}
+aov.sepallength.out.tukey <- TukeyHSD(aov.sepallength.out)
+aov.sepallength.out.tukey
+```
+
+4e) Add the information from the post-hoc test to your figure
+```{r}
+iris_sepals_posthoc <- ggplot(iris_ds, aes(x=Species, y=Sepal.Length, col = Species)) + 
+  geom_boxplot() +
+  xlab("Species") +
+  ylab("Sepal Length")
+
+iris_sepals_posthoc
+```
+
+5) Are sepal and petal length correlated?
+5a) Plot sepal length against petal length.
+```{r}
+plot(iris_ds$Sepal.Length, iris_ds$Petal.Length, xlab = "Sepal Length", ylab = "Petal Length")
+```
+
+5b) Are these two measures correlated? (Hint: use a Pearson's correlation)
+```{r}
+iris_ds_sep_pet_cor <- cor.test(iris_ds$Petal.Length, iris_ds$Sepal.Length)
+iris_ds_sep_pet_cor
+```
+
+Yes, these two measures are correlated (Pearson's R = .87, p < 2.2e-16).
+
+5c) Color code your plot by species, include a legend on the plot.
+```{r}
+speces.length.plot <- ggplot(iris_ds, aes(x = Sepal.Length, y = Petal.Length, color = Species)) +
+  geom_point() +
+  xlab("Sepal Length") +
+  ylab("Petal Length")
+
+speces.length.plot
+```
+
+5d) Do species vary in the relationship between sepal and petal length?
+```{r}
+sepal_vs_petal_lm <- lm(iris_ds$Sepal.Length ~ iris_ds$Petal.Length + iris_ds$Species - 1)
+summary(sepal_vs_petal_lm)
+
+sepal_vs_petal_lm_int <- lm(iris_ds$Sepal.Length ~ iris_ds$Petal.Length * iris_ds$Species - 1)
+summary(sepal_vs_petal_lm_int)
+```
+
+6) Examine (plot and stats) the relationship between petal length and sepal width and how this relationship differs among the three species.
+```{r}
+plot(iris_ds, col = iris_ds$Species)
+sepalwidth_vs_petallength_lm_with_int <- lm(iris_ds$Petal.Length ~ iris_ds$Sepal.Width * iris_ds$Species - 1)
+summary(sepalwidth_vs_petallength_lm_with_int)
+
+linear_sepal_petal_plot <- ggplot(iris_ds, aes(x = Sepal.Width, y = Petal.Length, color = Species)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+linear_sepal_petal_plot
+```
+
+## ChickWeight Exercise
+
+1. Plot and examine if there is a statistically significant difference between the weights of chicks assigned to different diet treatments on day 0.
+
+```{r}
+day_zero_chicks <- ChickWeight %>% filter(Time == 0)
+head(day_zero_chicks)
+
+boxplot(data = day_zero_chicks, weight~Diet, main = "Weights of Chicks Assigned to Diet Treatments on Day 0", xlab = "Diet Treatment", ylab = "Weight")
+
+anova_out <- oneway.test(day_zero_chicks$weight ~ day_zero_chicks$Diet)
+anova_out
+```
+
+2. Plot and examine if there is a statistically significant difference between the weights of chicks assigned to different diet treatments at the end of the study (on day 21).
+
+```{r}
+day_twentyone_chicks <- ChickWeight %>% filter(Time == 21)
+head(day_twentyone_chicks)
+
+boxplot(data = day_twentyone_chicks, weight~Diet, main = "Weights of Chicks Assigned to Diet Treatments on Day 21", xlab = "Diet Treatment", ylab = "Weight")
+
+anova_out <- oneway.test(day_twentyone_chicks$weight ~ day_twentyone_chicks$Diet)
+anova_out
+```
+
+3. Is there an effect of diet on chick growth? (HINT: you will need to use a repeated measures ANOVA).
+
+```{r}
+summary(aov(as.numeric(ChickWeight$Diet) ~ ChickWeight$weight + Error(rownames(ChickWeight)/ChickWeight$weight)))
+```
+
+4. Plot the effects of diet on chick growth.
+
+```{r}
+boxplot(data = ChickWeight, weight~Diet, main = "Weights of Chicks Assigned to Diet Treatments", xlab = "Diet Treatment", ylab = "Weight")
+```
+
+5. Using a ‘for’ loop, plot the growth of each chick in a different color, all on the same plot.
+
+```{r}
+#average across diet type (4 lines)
+mean_weights <- ChickWeight %>%
+  group_by(Time, Diet) %>%
+  summarise(MeanWeight = mean(weight))
+
+mean_weights
+
+p <- ggplot() +
+  geom_line(data = mean_weights, aes(x = mean_weights$Time, y = mean_weights$MeanWeight, col = mean_weights$Diet)) +
+  xlab("Time (Days)") +
+  ylab("Weight") +
+  ggtitle("Weights of Chicks Assigned to Diet Treatments Through Time")
+
+p
+```
+
+# Kirk Lohmueller (Day 1)
+
+## Plotting and Simulation Exercises
+
+Imagine that you wish to conduct a study of height of people living in Los Angeles. One strategy is to take a sample of 100 people and compute the average height. Another study design would involve taking a sample of 1000 people and computing the average height. You wish to test the extent to which the different sample sizes affect your estimates of the average height.
+
+To test this, conduct a simple simulation study in R. Assume that the heights of people from LA are normally distributed with a mean of 69 inches and a standard deviation of 10 inches.
+
+In order to conduct the simulation study, you should do the following:
+
+1. Write a function (called “get_heights”) in R to draw a sample of individuals (either 100 or 1000) from the population. Hint: You will want to use “rnorm” within your function. Store the random heights that you’ve generated in a variable called “heights”.
+
+2. Within your function, compute the average height from your “heights” vector.
+
+3. Make your function return the average height.
+```{r}
+get_heights <- function(n) {
+  heights_people_LA <- rnorm(n, mean = 69, sd = 10)
+  avg_heights <- mean(heights_people_LA)
+  return(avg_heights)
+}
+
+heights <- get_heights(1000)
+heights
+```
+
+4. Use a “for” loop to call your “get_heights” function 1000 times, with taking a sample of size 100 from the population. Save the mean height from each replicate in a vector called “mean_heights_100”.
+```{r}
+mean_heights_100 <- vector()
+for(i in 1:1000) {
+  mean_heights_100[i] <- get_heights(100)
+}
+```
+5. Use a “for” loop to call your “get_heights” function 1000 times, with taking a sample of size 1000 from the population. Save the mean height from each replicate in a vector called “mean_heights_1000”.
+```{r}
+mean_heights_1000 <- vector()
+for(i in 1:1000) {
+  mean_heights_1000[i] <- get_heights(1000)
+}
+```
+
+6. Plot a histogram of the distribution of the average heights for your sample size of 100 and 1000 individuals. The two sets of data should be plotted on the same axes. Add a legend. Label the axes. Plot the data from the 100 samples in red and the data from the 1000 samples in blue. Your plot should look something like the one shown on the next page.
+```{r}
+mean_heights_100_df <- data.frame(mean_heights_100, rep(100))
+mean_heights_1000_df <- data.frame(mean_heights_1000, rep(1000))
+
+col_names <- c("Height", "SampleSize")
+colnames(mean_heights_100_df) <- col_names
+colnames(mean_heights_1000_df) <- col_names
+
+mean_heights <- rbind(mean_heights_100_df, mean_heights_1000_df)
+
+head(mean_heights)
+tail(mean_heights)
+
+freq_hist_heights_plot <- ggplot(mean_heights, aes(x = Height, fill = factor(SampleSize))) +
+  geom_histogram(alpha = 1, position = "dodge") +
+  labs(title = "100 vs. 1000 Person Sample Size Estimates", x = "Height (inches)", y = "Frequency") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+freq_hist_heights_plot
+```
+
+# Michael Alfaro (Day 2)
+
+## Control and Flow Exercises
+
+1) Write a for loop statements so that it runs from 1:9 and prints the following output to your screen:
+    •
+    •
+    •
+    •
+    •
+    •
+    •
+    •
+    •
+    •
+```{r}
+for(ii in 1:9)
+{
+  cat("•\n")  
+}
+```
+    
+2) Modify your for loop so that it prints 10 asterisks, with each asterisk separated by exactly one ampersand sign, with no spaces or new line characters.
+```{r}
+for(ii in 1:10)
+{
+  if (ii != 10)
+  {
+    cat("*&")
+  }
+  else
+  {
+    cat("*")
+  }
+  
+}
+```
+
+Exercise 3) by hand, figure out the initial values of these variables and values at the the start and end of each iteration of the loop
+
+```{r}
+dogs <- 10
+for (i in 1:5){
+  dogs <- dogs + 1;
+}
+
+###
+meatloaf <- 0
+for (i in 5:9){
+  meatloaf <- meatloaf - i + 1
+  cat(meatloaf)
+}
+
+###
+bubbles <- 12
+for (i in -1:-4){
+    bubbles <- i
+}
+```
+dogs: (1st iteration start = 10; 1st iteration end = 11, 2nd iteration start = 11, 2nd iteration end = 12, 3rd iteration start = 12, 3rd iteration end = 13, 4th iteration start = 13, 4th iteration end = 14, 5th iteration start = 14, 5th iteration end = 15) 
+
+meatloaf: (1st iteration start = 0; 1st iteration end = -4, 2nd iteration start = -4, 2nd iteration end = -9, 3rd iteration start = -9, 3rd iteration end = -15, 4th iteration start = -15, 4th iteration end = -22, 5th iteration start = -22, 5th iteration end = -30) 
+
+bubbles: (1st iteration start = 12; 1st iteration end = -1, 2nd iteration start = -1, 2nd iteration end = -2, 3rd iteration start = -2, 3rd iteration end = -3, 4th iteration start = -3, 4th iteration end = -4) 
+
+5) More fun with loops. Here are the bank accounts from seven randomly selected UCLA grad students
+```{r}
+bankAccounts <- c(10, 9.2, 5.6, 3.7, 8.8, 0.5)
+
+# Now look at the error message the following lines of code produce.
+# Can you think of a way to modify this?
+
+###Modification (START)###
+compounded <- rep(length(bankAccounts))
+compounded
+###Modification (END)###
+
+interestRate <- 0.0125
+for (i in 1:length(bankAccounts)) {
+  compounded[i] <- interestRate*bankAccounts[i] + bankAccounts[i]
+}
+
+compounded
+# HINT: variables must be initialized before you can perform operations on them
+# HINT 2: look at the rep() function and see if you can use that to initialize a variable that will help
+```
+
+6) Go back to the compounded interest example. Suppose we now want to compound the interest annually, but across a period of 5 years. The for loop we discussed earlier only compounds for a single year. Try this:
+```{r}
+bankAccounts <- c(10, 9.2, 5.6) #define bank accounts here 
+interestRate <- 0.0525;
+house <- c(4.8, 3.8, 5.7) #deduct
+food<- c(3.5, 4.3, 5.0) #deduct
+fun <- c(7.8, 2.1, 10.5) #deduct 
+#and incomes (through TAships) of 
+income <- c(21, 21, 21) #add this
+
+for (i in 1:length(bankAccounts)) {
+  #step 1 modify bankAccounts so that amounts reflect income and expenses
+  bankAccounts[i] <- bankAccounts[i] - house[i] - food[i] - fun[i] + income[i]
+  
+  for (j in 1:5) {
+    bankAccounts[i] <- interestRate*bankAccounts[i] + bankAccounts[i]
+  }
+}
+
+bankAccounts
+```
+
+7) Three students have estimated annual expenditures for food, housing, and fun of: (in thousands of dollars)
+```{r}
+house <- c(4.8, 3.8, 5.7)
+food<- c(3.5, 4.3, 5.0)
+fun <- c(7.8, 2.1, 10.5)
+
+#and incomes (through TAships) of
+
+income <- c(21, 21, 21)
+
+new_bankAccounts <- c(10, 9.2, 5.6)
+
+years_to_calc <- c(2015, 2016, 2017, 2018, 2019, 2020)
+
+trust_fund_amt <- 5000
+```
+
+Modify the 5-year interest-compounding code from #5 and #6 so that it runs from 2015-2020 and so that in odd numbered years students 1 and 3 get trust fund disbursements of $5000. (hint the modulus function %% will be helpful)
+```{r}
+for (i in 1:length(new_bankAccounts)) {
+  new_bankAccounts[i] <- new_bankAccounts[i] - house[i] - food[i] - fun[i] + income[i]
+  
+  for (j in 1:length(years_to_calc)) {
+    if (years_to_calc[j] %% 2 != 0)
+    {
+      new_bankAccounts[1] <- new_bankAccounts[1] + trust_fund_amt
+      new_bankAccounts[3] <- new_bankAccounts[3] + trust_fund_amt
+    }
+    new_bankAccounts[i] <- interestRate*new_bankAccounts[i] + new_bankAccounts[i]
+  }
+}
+
+new_bankAccounts
+```
+
+8) use a while loop to sum all numbers from 1:17. You will need to use a counter variable (like index seen in class).
+```{r}
+counter <- 1
+counter_max <- 17
+csum <- 0
+while (counter < counter_max + 1)
+{
+  csum <- csum + counter
+  counter <- counter + 1
+}
+csum
+```
+
+9) write a function takes a number, and prints ‘small’ if number less than or equal to -1; ‘medium’ if between -1 and + 1’big’ if greater than or equal to + 1
+```{r}
+smlfun <- function(x)
+{
+  if (x <= -1)
+  {
+    print('small')
+  }
+  else if (x < 1 && x > -1)
+  {
+    print('medium')
+  }
+  else
+  {
+    print('large')
+  }
+}
+```
+
+# Jamie Lloyd-Smith (Day 2)
+
+## Bootcamp Modeling Exercises
+(a) Write a function that runs the Ricker model, plots the result, and returns the time series as an output. At minimum, your function should take all parameter values and initial conditions as input arguments. (Hint: this should involve minimal modification of a modeling function we wrote in class.)
+```{r}
+RickerModel <- function(n_t=50, r=0.04, K=400, ttMax=140, PLOT_FLAG = 1)
+{
+  NN <- rep(NA, ttMax + 1)
+  NN[1] <- n_t 
+    
+  for (tt in 1:ttMax) {
+    NN[tt + 1] <- NN[tt]*exp(r*(1-(NN[tt]/K)))
+  }
+  
+  if(PLOT_FLAG == 1) {
+    plot(1:(ttMax+1), NN, lty = 2, type = 'l', xlab = 't', ylab = 'Population Size', main = 'Ricker Model') 
+  }
+  
+  
+  return(NN)
+}
+
+RickerModel(50, 0.04, 400, 140)
+```
+
+(b) Explore the dynamics of the model. Try to find combinations of parameter values that yield the following patterns:
+- Population decreases to n = 0.
+```{r}
+RickerModel(50, -0.1, 100, 100)
+```
+- Population approaches stable equilibrium at n = K, without oscillations.
+```{r}
+RickerModel(100, 0.01, 140, 1000)
+```
+- Decaying oscillations around n = K.
+```{r}
+RickerModel(50, 2.0, 400, 140)
+```
+- Persistent, regular oscillations.
+```{r}
+RickerModel(50, 2.5, 400, 140)
+```
+- Crazy, random-looking fluctuations (chaos).
+```{r}
+RickerModel(50, 3.0, 200, 140)
+```
+Which parameter is the key driver of these patterns?
+--> The "r" parameter is the key driver of these patterns.
+
+(c) Choose six interesting values of this parameter. Write a script that makes an array of six plots showing the model dynamics for each of these values.
+```{r}
+K_param <- 250
+r_set <- c(0.0, 0.5, 1.8, 2.25, 2.75, 3.0)
+init_pop <- 100
+time_to_run <- 500
+
+par(mfrow=c(2,3))
+
+for(ii in r_set)
+{
+  RickerModel(init_pop, ii, K_param, time_to_run)
+}
+```
+
+(d) Imagine n0 = 20 and K = 1000 for a certain population of deer that is growing according to the Ricker model. You are a wildlife manager, and are concerned about how long it will take for the population to reach half of its carrying capacity. That is, you want to know tK/2, the first year that nt greater-than or equal to K/2. Suppose your output time series is called nVec. Write an R command that will determine the index of the first element of nVec that is greater-than or equal to K/2.
+```{r}
+K_param <- 1000
+r_static <- 0.5
+init_pop <- 20
+time_to_run <- 100
+
+nVec <- RickerModel(init_pop, r_static, K_param, time_to_run)
+
+RickerModelHalfCarrying_Index <- function(time_series, K_capacity, PRINT_FLAG = 1) {
+  K_half <- K_capacity / 2
+  if(PRINT_FLAG == 1) {
+    cat("Half of Carrying Capacity is: ", K_half, "\n")  
+  }
+  
+  for(ii in 1:length(time_series)) {
+    if(time_series[ii] >= K_half) {
+      return(ii)
+    }
+  }
+}
+
+tk2_index <- RickerModelHalfCarrying_Index(nVec, K_param)
+tk2_index
+```
+(e) Write a script that runs the necessary simulations and collects the necessary data to plot how tK/2 depends on r, for the range of r from 0.1 to 0.9.
+```{r}
+r_sim_seq <- seq(0.1, 0.9, by = 0.01)
+r_sim_seq
+
+K_param <- 500
+init_pop <- 20
+time_to_run <- 100
+
+nVec_set <- list()
+for(nnn in 1:length(r_sim_seq)) {
+  nVec_set[[nnn]] <- RickerModel(init_pop, r_sim_seq[nnn], K_param, time_to_run, 0)  
+}
+
+tk2_data_set_indices <- matrix(NA, nrow = length(r_sim_seq), ncol = 1)
+
+for(ii in 1:length(r_sim_seq)) {
+  tk2_data_set_indices[ii] <- RickerModelHalfCarrying_Index(nVec_set[[ii]], K_param, 0)
+}
+
+tk2_values <- matrix(NA, nrow = length(tk2_data_set_indices), ncol = 1)
+for(ii in 1:length(tk2_data_set_indices)) {
+  tk2_values[ii] <- nVec_set[[ii]][tk2_data_set_indices[ii]]
+}
+
+plot(r_sim_seq, tk2_values, type='l', xlab = "r", ylab = "t_K/2", main = "How t_K/2 Depends on R, (K = 500, n0 = 20)")
+```
+(f) Write pseudo-code to do a joint sensitivity analysis for two parameters. That is, choose a vector of values you’d like to consider for both r and K, and choose a simple output from your model (e.g. population size at t = 10). Run the model for all possible combinations of these values and collect the results in a matrix with appropriate dimensions. Plot the results in some way. (Hint: the straight-forward way to do this uses a ‘nested loop’.)
+(g) (BONUS, OPTIONAL, PRETTY STRAIGHTFORWARD) Convert your pseudo-code into an R script to do a two-dimensional sensitivity analysis, and create a visually appealing plot to summarize the results. (You will need to google for plotting commands, e.g. contour or surface plots).
+```{r}
+r_sens <- c(runif(50, min = 0, max = 3))
+K_sens <- c(floor(runif(50, min = 0, max = 700)))
+init_pop <- 100
+time_to_run <- 400
+
+nVec_sens_set <- list()
+for(rr in 1:length(r_sens)) {
+  nVec_sens_set[[rr]] <- RickerModel(init_pop, r_sens[rr], K_sens[rr], time_to_run, 0)  
+}
+
+time_index_to_select_from <- 10
+
+n_at_time_t <- matrix(NA, nrow = length(nVec_sens_set), ncol = 1)
+for(ii in 1:length(n_at_time_t)) {
+  n_at_time_t[ii] <- nVec_sens_set[[ii]][time_index_to_select_from]
+}
+
+## For 3D Surface Plot
+library(plotly)
+
+x_coords = c(0, 1, 2, 3) 
+y_coords = c(0, 100, 300, 500, 700)
+z_vals <- matrix(n_at_time_t, nrow = length(n_at_time_t)/2, ncol = length(n_at_time_t)/2)
+sf_plot_sensitivity <- plot_ly(x = x_coords, y = y_coords, z = z_vals, type = "contour")
+sf_plot_sensitivity
+```
+
+(h) (BONUS, OPTIONAL, PRETTY HARD) Write a script to make a bifurcation plot for this model, showing how its long-term dynamics change as the parameter r is varied. You will need to collect a set of values reflecting the long-term dynamics of N for each value of r, where r falls between 0 and 4. Plot these N-values as points on the y-axis, versus the corresponding value of r on the x-axis. Hint: you may need to look up the R command matplot.
+```{r}
+r_bifur <- seq(0, 4, by = 0.1)
+K_bifur <- 150
+init_pop <- 10
+time_to_run <- 100
+
+nVec_bifur_set <- list()
+plot(-1, -1, xlim = c(0, max(r_bifur)), ylim = c(0, 1000), xlab = "r", ylab = "N")
+for(rr in 1:length(r_bifur)) {
+  nVec_set <- vector()
+  nVec_set[1] <- init_pop
+  for(j in 1:time_to_run) {
+    nVec_set[j + 1] <-  nVec_set[j]*exp(r_bifur[rr]*(1-(nVec_set[j]/K_bifur)))
+  }
+  values_to_plot <- unique(nVec_set[20:time_to_run])
+  points(rep(r_bifur[rr], length(values_to_plot)), values_to_plot, cex = 0.4, pch = 19)
+}
+```
